@@ -14,10 +14,10 @@ on:
           required: true
       token:
           description: 'Telegram bot token'
-          required: false
+          required: true
       chat_id:
           description: 'Telegram chat id'
-          required: false
+          required: true
 
 
 env:
