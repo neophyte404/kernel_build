@@ -40,8 +40,8 @@ jobs:
           libxml2-utils lzop pngcrush rsync schedtool squashfs-tools \
           xsltproc zip zlib1g-dev python2 neofetch repo aria2
 
-          git config --global user.name "neophyte404"
-          git config --global user.email "260553983+neophyte404@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
 
           neofetch
 
