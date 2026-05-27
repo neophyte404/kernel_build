@@ -91,6 +91,25 @@ sync_source() {
     --no-clone-bundle \
     --no-tags
 
+    echo "Setting up custom clang"
+
+rm -rf .repo
+rm -rf prebuilts/clang/host/linux-x86
+
+aria2c -x 16 -s 16 \
+-o clang.tar.gz \
+"https://github.com/topnotchfreaks/clang/releases/download/v1.0.0/clang-r547379.tar.gz"
+
+mkdir -p prebuilts/clang/host/linux-x86/clang-r547379
+
+tar -xzf clang.tar.gz \
+-C prebuilts/clang/host/linux-x86/clang-r547379
+
+rm -f clang.tar.gz
+
+sed -i 's/^CLANG_VERSION=.*/CLANG_VERSION=r547379/' \
+build.config.constants || true
+
     echo "Done"
 }
 
