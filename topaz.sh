@@ -67,10 +67,11 @@ sync_source() {
 
     cd "$WORK_DIR"
 
-    git clone --depth=1 \
-    -b "${BRANCH}" \
-    "${REPO}" \
-    "${KERNEL_DIR}"
+    echo "Syncing manifest"
+    repo init -u https://github.com/neophyte404/kernel_manifest.git -b main
+    repo sync
+    sudo apt install -y ccache
+    echo "Done"
 }
 
 # Compile kernel
