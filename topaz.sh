@@ -97,14 +97,12 @@ sync_source() {
 # Compile kernel
 compile() {
 
-    cd "${KERNEL_DIR}"
+    if [ -d "out" ]; then
+        rm -rf out && mkdir -p out
+    fi
 
-    rm -rf out
-    mkdir -p out
-
-    LTO=thin \
-    BUILD_CONFIG=build.config.gki.aarch64 \
-    build/build.sh
+    cd $WORK_DIR
+    LTO=thin BUILD_CONFIG=$KERNEL_DIR/build.config.gki.aarch64 build/build.sh
 
     IMAGE="out/android13-5.15/dist/Image"
 
