@@ -110,6 +110,53 @@ sync_source() {
     echo "Done"
 }
 
+# Setup KernelSU
+setup_ksu() {
+
+    if [ "${VARIANT}" = "Vanilla" ]; then
+        echo "Skipping KernelSU"
+        return
+    fi
+
+    cd "${WORK_DIR}/topaz"
+
+    echo "Applying KernelSU-Next..."
+
+    rm -rf ./KernelSU ./KernelSU-Next ./drivers/kernelsu
+
+    curl -LSs \
+    "https://raw.githubusercontent.com/pershoot/KernelSU-Next/dev-susfs/kernel/setup.sh" \
+    | bash -s dev-susfs
+
+    if [ ! -L "drivers/kernelsu" ]; then
+        ln -sf ../KernelSU-Next drivers/kernelsu
+    fi
+        echo "Applying SuSFS..."
+
+        git clone --depth=1 \
+        https://gitlab.com/simonpunk/susfs4ksu.git \
+        -b gki-android13-5.15 \
+        susfs
+
+        mkdir -p include/linux fs
+
+        cp -f susfs/kernel_patches/include/linux/susfs.h include/linux/
+
+        cp -f \
+        susfs/kernel_patches/include/linux/susfs_def.h \
+        include/linux/ || true
+
+        cp -f susfs/kernel_patches/fs/susfs.c fs/
+
+        patch -p1 < \
+        susfs/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch \
+        || echo "Hunks failed but continuing..."
+
+        rm -rf susfs
+
+    echo "KernelSU setup done"
+}
+
 # Compile kernel
 compile() {
 
@@ -149,7 +196,7 @@ zipping() {
 
     cd "${ANYKERNEL}"
 
-    ZIPNAME="Destruction-${CODENAME}-${DATE}.zip"
+    ZIPNAME="Destruction-${CODENAME}-${VARIANT}-${DATE}.zip"
 
     zip -r9 "${ZIPNAME}" ./*
 }
