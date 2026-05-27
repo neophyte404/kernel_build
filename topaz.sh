@@ -141,7 +141,7 @@ Please check GitHub Actions logs.
     "${ANYKERNEL}" \
     -b topaz
 
-    cp "${KERNEL_DIR}/${IMAGE}" "${ANYKERNEL}/Image"
+    cp "${WORK_DIR}/${IMAGE}" "${ANYKERNEL}/Image"
 }
 
 # Make zip
