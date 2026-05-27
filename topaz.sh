@@ -1,132 +1,137 @@
 #!/usr/bin/env bash
 
-# Dependencies
-# init
-init() {
-    mkdir ~/bin
-    PATH=~/bin:$PATH
-    curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-    chmod a+x ~/bin/repo
-}
+set -ex
 
 WORK_DIR=$(pwd)
+
 ANYKERNEL="${WORK_DIR}/anykernel"
 KERNEL_DIR="topaz"
-IMAGE=$WORK_DIR/out/android13-5.15/dist/Image
+
 DATE=$(date +"%Y%m%d-%H%M")
 START=$(date +"%s")
-CACHE=1
-export CACHE
-export KBUILD_COMPILER_STRING
-ARCH=arm64
-export ARCH
-KBUILD_BUILD_HOST="neokun"
-export KBUILD_BUILD_HOST
-KBUILD_BUILD_USER="neo-server"
-export KBUILD_BUILD_USER
+
+export ARCH=arm64
+export KBUILD_BUILD_HOST="neokun"
+export KBUILD_BUILD_USER="neo-server"
+
 DEVICE="Xiaomi Redmi Note 12"
-export DEVICE
 CODENAME="topaz"
-export CODENAME
+
 DEFCONFIG="gki_defconfig"
-export DEFCONFIG
-COMMIT_HASH=$(git rev-parse --short HEAD)
-export COMMIT_HASH
+
 PROCS=$(nproc --all)
-export PROCS
-STATUS=STABLE
-export STATUS
-source "${HOME}"/.bashrc && source "${HOME}"/.profile
-if [ $CACHE = 1 ]; then
-    ccache -M 100G
-    export USE_CCACHE=1
-fi
+
+export USE_CCACHE=1
+
+ccache -M 100G
+
 LC_ALL=C
 export LC_ALL
 
+# Telegram message
 tg() {
-    curl -sX POST https://api.telegram.org/bot"${token}"/sendMessage -d chat_id="${chat_id}" -d parse_mode=Markdown -d disable_web_page_preview=true -d text="$1" &>/dev/null
+    curl -sX POST \
+    "https://api.telegram.org/bot${token}/sendMessage" \
+    -d chat_id="${chat_id}" \
+    -d parse_mode=Markdown \
+    -d disable_web_page_preview=true \
+    -d text="$1"
 }
 
+# Telegram file upload
 tgs() {
     MD5=$(md5sum "$1" | cut -d' ' -f1)
-    curl -fsSL -X POST -F document=@"$1" https://api.telegram.org/bot"${token}"/sendDocument \
-        -F "chat_id=${chat_id}" \
-        -F "parse_mode=Markdown" \
-        -F "caption=$2 | *MD5*: \`$MD5\`"
+
+    curl -fsSL -X POST \
+    "https://api.telegram.org/bot${token}/sendDocument" \
+    -F document=@"$1" \
+    -F chat_id="${chat_id}" \
+    -F parse_mode=Markdown \
+    -F caption="$2 | *MD5*: \`${MD5}\`"
 }
 
-# Send Build Info
+# Build info
 sendinfo() {
     tg "
-• sirCompiler Action •
-*Building on*: \`Github actions\`
-*Date*: \`${DATE}\`
-*Device*: \`${DEVICE} (${CODENAME})\`
-*Branch*: \`$(git rev-parse --abbrev-ref HEAD)\`
-*Last Commit*: [${COMMIT_HASH}](${REPO}/commit/${COMMIT_HASH})
-*Compiler*: \`${KBUILD_COMPILER_STRING}\`
-*Build Status*: \`${STATUS}\`"
+*Destruction Kernel CI*
+
+*Device:* \`${DEVICE} (${CODENAME})\`
+*Branch:* \`${BRANCH}\`
+*Date:* \`${DATE}\`
+*Compiler Host:* \`$KBUILD_BUILD_HOST\`
+"
 }
 
-sync() {
-    cd $WORK_DIR
-    echo "Syncing manifest"
-    repo init -u https://github.com/neophyte404/kernel_manifest.git -b main
-    repo sync
-    sudo apt install -y ccache
-    echo "Done"
+# Sync source
+sync_source() {
+
+    cd "$WORK_DIR"
+
+    git clone --depth=1 \
+    -b "${BRANCH}" \
+    "${REPO}" \
+    "${KERNEL_DIR}"
 }
 
-# Push kernel to channel
-push() {
-    cd AnyKernel || exit 1
-    ZIP=$(echo *.zip)
-    tgs "${ZIP}" "Build took $((DIFF / 60)) minute(s) and $((DIFF % 60)) second(s). | For *${DEVICE} (${CODENAME})* | ${KBUILD_COMPILER_STRING}"
-}
-
-# Catch Error
-finderr() {
-    curl -s -X POST "https://api.telegram.org/bot$token/sendMessage" \
-        -d chat_id="$chat_id" \
-        -d "disable_web_page_preview=true" \
-        -d "parse_mode=markdown" \
-        -d sticker="CAACAgIAAxkBAAED3JViAplqY4fom_JEexpe31DcwVZ4ogAC1BAAAiHvsEs7bOVKQsl_OiME" \
-        -d text="Build throw an error(s)"
-    error_sticker
-    exit 1
-}
-
-# Compile
+# Compile kernel
 compile() {
 
-    if [ -d "out" ]; then
-        rm -rf out && mkdir -p out
+    cd "${KERNEL_DIR}"
+
+    if [ -d out ]; then
+        rm -rf out
     fi
 
-    cd $WORK_DIR
-    LTO=thin BUILD_CONFIG=$KERNEL_DIR/build.config.gki.aarch64 build/build.sh
+    mkdir -p out
 
-    if ! [ -a "$IMAGE" ]; then
-        finderr
+    LTO=thin \
+    BUILD_CONFIG=build.config.gki.aarch64 \
+    build/build.sh
+
+    IMAGE="${KERNEL_DIR}/out/android13-5.15/dist/Image"
+
+    if ! [ -f "${IMAGE}" ]; then
+        tg "*Build failed!*"
         exit 1
     fi
 
-    git clone --depth=1 https://github.com/neophyte404/Anykernel3.git "$ANYKERNEL" -b topaz
-    cp "$IMAGE" "$ANYKERNEL"
-}
-# Zipping
-zipping() {
-    cd $ANYKERNEL || exit 1
-    zip -r9 Destruction"${BRANCH}"-"${CODENAME}"-"${DATE}".zip ./*
-    cd ..
+    cd "$WORK_DIR"
+
+    git clone --depth=1 \
+    https://github.com/neophyte404/Anykernel3.git \
+    "${ANYKERNEL}" \
+    -b topaz
+
+    cp "${IMAGE}" "${ANYKERNEL}/Image"
 }
 
-init
-sync
+# Make zip
+zipping() {
+
+    cd "${ANYKERNEL}"
+
+    ZIPNAME="Destruction-${CODENAME}-${DATE}.zip"
+
+    zip -r9 "${ZIPNAME}" ./*
+}
+
+# Upload zip
+push_zip() {
+
+    cd "${ANYKERNEL}"
+
+    ZIP=$(ls *.zip)
+
+    END=$(date +"%s")
+    DIFF=$((END - START))
+
+    tgs "${ZIP}" \
+    "Build took $((DIFF / 60)) minute(s) and $((DIFF % 60)) second(s)"
+}
+
+# Main
 sendinfo
+sync_source
 compile
 zipping
-END=$(date +"%s")
-DIFF=$((END - START))
-push
+push_zip
