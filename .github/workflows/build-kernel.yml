@@ -31,6 +31,7 @@ env:
   DEVICE: ${{ github.event.inputs.device }}
   REPO: ${{ github.event.inputs.repo }}
   BRANCH: ${{ github.event.inputs.branch }}
+  VARIANT: ${{ github.event.inputs.variant }}
 
   token: ${{ secrets.TG_TOKEN }}
   chat_id: ${{ secrets.TG_CHAT_ID }}
