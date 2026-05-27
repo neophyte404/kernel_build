@@ -1,0 +1,56 @@
+name: Build Kernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+          description: 'device codename (e.g topaz)'
+          required: true
+      repo:
+          description: 'Kernel source link (dont include . git at the end)'
+          required: true
+      branch:
+          description: 'Kernel source branch'
+          required: true
+      token:
+          description: 'Telegram bot token'
+          required: false
+      chat_id:
+          description: 'Telegram chat id'
+          required: false
+
+
+env:
+  TZ: Asia/Jakarta
+  DEVICE: ${{ github.event.inputs.device }}
+  REPO: ${{ github.event.inputs.repo }}
+  BRANCH: ${{ github.event.inputs.branch }}
+  GKI: ${{ github.event.inputs.gki }}
+  token: ${{ github.event.inputs.token }}
+  chat_id: ${{ github.event.inputs.chat_id }}
+
+jobs:
+  kernel-build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Initializing environment
+        run: |
+          git config --global user.name "neophyte404"
+          git config --global user.email "260553983+neophyte404@users.noreply.github.com"
+          df -h
+          ld --version
+          gcc -v
+          ar --version
+          sudo apt update
+          sudo apt install -y bc bison build-essential ccache curl flex glibc-source g++-multilib gcc-multilib binutils-aarch64-linux-gnu git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libwxgtk3.0-gtk3-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python2 tmate ssh neofetch
+          neofetch
+
+      - name: Compiling
+        run: |
+          if [ "${DEVICE}" = "topaz" ]; then 
+            wget https://raw.githubusercontent.com/neophyte404/kernel_build/main/topaz.sh
+            bash topaz.sh
+          else
+            echo "Device not supported yet"
+          fi
