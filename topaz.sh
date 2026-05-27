@@ -17,6 +17,7 @@ export KBUILD_BUILD_USER="neo-server"
 DEVICE="Xiaomi Redmi Note 12"
 CODENAME="topaz"
 
+VARIANT="${1:-Vanilla}"
 DEFCONFIG="gki_defconfig"
 
 PROCS=$(nproc --all)
@@ -219,6 +220,7 @@ push_zip() {
 init_repo
 sendinfo
 sync_source
+setup_ksu
 compile
 zipping
 push_zip
