@@ -8,6 +8,15 @@ on:
         required: true
         default: 'topaz'
 
+      variant:
+        description: "Kernel Variant"
+        required: true
+        default: "Vanilla"
+        type: choice
+        options:
+          - Vanilla
+          - KSU
+
       repo:
         description: 'Kernel source link'
         required: true
