@@ -17,22 +17,9 @@ on:
           - Vanilla
           - KSU
 
-      repo:
-        description: 'Kernel source link'
-        required: true
-
-      branch:
-        description: 'Kernel source branch'
-        required: true
-        default: 'main'
-
 env:
   TZ: Asia/Jakarta
   DEVICE: ${{ github.event.inputs.device }}
-  REPO: ${{ github.event.inputs.repo }}
-  BRANCH: ${{ github.event.inputs.branch }}
-  VARIANT: ${{ github.event.inputs.variant }}
-
   token: ${{ secrets.TG_TOKEN }}
   chat_id: ${{ secrets.TG_CHAT_ID }}
 
@@ -62,4 +49,4 @@ jobs:
         run: |
           wget https://raw.githubusercontent.com/neophyte404/kernel_build/main/topaz.sh
           chmod +x topaz.sh
-          bash topaz.sh
+          bash topaz.sh "${{ github.event.inputs.variant }}"
