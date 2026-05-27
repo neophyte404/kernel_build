@@ -70,9 +70,8 @@ sendinfo() {
 *Destruction Kernel CI*
 
 *Device:* \`${DEVICE} (${CODENAME})\`
-*Branch:* \`${BRANCH}\`
+*Variant:* \`${VARIANT}\`
 *Date:* \`${DATE}\`
-*Compiler Host:* \`${KBUILD_BUILD_HOST}\`
 "
 }
 
