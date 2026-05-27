@@ -28,6 +28,17 @@ ccache -M 100G
 LC_ALL=C
 export LC_ALL
 
+# Install repo tool
+init_repo() {
+    mkdir -p ~/bin
+
+    curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+
+    chmod a+x ~/bin/repo
+
+    export PATH=~/bin:$PATH
+}
+
 # Telegram message
 tg() {
     curl -sX POST \
@@ -40,6 +51,7 @@ tg() {
 
 # Telegram file upload
 tgs() {
+
     MD5=$(md5sum "$1" | cut -d' ' -f1)
 
     curl -fsSL -X POST \
@@ -52,13 +64,14 @@ tgs() {
 
 # Build info
 sendinfo() {
+
     tg "
 *Destruction Kernel CI*
 
 *Device:* \`${DEVICE} (${CODENAME})\`
 *Branch:* \`${BRANCH}\`
 *Date:* \`${DATE}\`
-*Compiler Host:* \`$KBUILD_BUILD_HOST\`
+*Compiler Host:* \`${KBUILD_BUILD_HOST}\`
 "
 }
 
@@ -68,9 +81,16 @@ sync_source() {
     cd "$WORK_DIR"
 
     echo "Syncing manifest"
-    repo init -u https://github.com/neophyte404/kernel_manifest.git -b main
-    repo sync
-    sudo apt install -y ccache
+
+    repo init --depth=1 \
+    -u https://github.com/neophyte404/kernel_manifest.git \
+    -b main
+
+    repo sync -c -j"${PROCS}" \
+    --force-sync \
+    --no-clone-bundle \
+    --no-tags
+
     echo "Done"
 }
 
@@ -79,20 +99,23 @@ compile() {
 
     cd "${KERNEL_DIR}"
 
-    if [ -d out ]; then
-        rm -rf out
-    fi
-
+    rm -rf out
     mkdir -p out
 
     LTO=thin \
     BUILD_CONFIG=build.config.gki.aarch64 \
     build/build.sh
 
-    IMAGE="${KERNEL_DIR}/out/android13-5.15/dist/Image"
+    IMAGE="out/android13-5.15/dist/Image"
 
     if ! [ -f "${IMAGE}" ]; then
-        tg "*Build failed!*"
+
+        tg "
+*Build failed!*
+
+Please check GitHub Actions logs.
+"
+
         exit 1
     fi
 
@@ -103,7 +126,7 @@ compile() {
     "${ANYKERNEL}" \
     -b topaz
 
-    cp "${IMAGE}" "${ANYKERNEL}/Image"
+    cp "${KERNEL_DIR}/${IMAGE}" "${ANYKERNEL}/Image"
 }
 
 # Make zip
@@ -131,6 +154,7 @@ push_zip() {
 }
 
 # Main
+init_repo
 sendinfo
 sync_source
 compile
