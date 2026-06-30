@@ -96,7 +96,12 @@ sync_source() {
     rm -rf .repo
     rm -rf prebuilts/clang/host/linux-x86
 
-    git clone --depth=1 https://gitlab.com/nekoprjkt/aosp-clang \
+    git clone \
+    --depth=1 \
+    --single-branch \
+    --no-tags \
+    --progress \
+    https://gitlab.com/nekoprjkt/aosp-clang.git \
     prebuilts/clang/host/linux-x86/clang-r522817
     
     echo "Done"
